@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+_figures/gciri_fig2_redesign_*/
+_figures/gciri_full5862_storyline_*/
+_figures/gciri_full5862_extended_*/
+_figures/gciri_full5862_supplementary_2026*/
+_pipelines/01_baseline_gciri/outputs/rerun/
+llm_logs/
+.env

@@ -1,0 +1,9 @@
+Check,n,Spearman rho,Evidence class
+Official national GIRI,5862,0.8708,Inherited national anchor
+City population,5862,0.0311,Descriptive city covariate
+VIIRS night-time lights,5862,0.4895,Input-adjacent activity proxy
+Population-nightlight exposure,5862,0.3745,Input-adjacent exposure proxy
+FEMA resilience,184,-0.0124,US county modeled benchmark
+FEMA social vulnerability,184,-0.3693,US county modeled benchmark
+FEMA expected annual loss,184,0.1458,US county modeled benchmark
+FEMA composite risk,184,0.0673,US county modeled benchmark

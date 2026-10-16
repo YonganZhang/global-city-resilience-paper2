@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite the article."
+title: "Global City Infrastructure Resilience Index (GCIRI) for 5,862 cities: code and data"
+authors:
+  - family-names: Zhang
+    given-names: Yongan
+  - family-names: Jiang
+    given-names: Yujie
+  - family-names: Guo
+    given-names: Zhiling
+  - family-names: Chen
+    given-names: Yuntian
+  - family-names: Yan
+    given-names: Jinyue
+license: MIT
+repository-code: "https://github.com/YonganZhang/global-city-resilience-paper2"
+preferred-citation:
+  type: article
+  title: "Global urban resilience divides, capacity weaknesses and development priorities"
+  authors:
+    - family-names: Zhang
+      given-names: Yongan
+    - family-names: Jiang
+      given-names: Yujie
+    - family-names: Guo
+      given-names: Zhiling
+    - family-names: Chen
+      given-names: Yuntian
+    - family-names: Yan
+      given-names: Jinyue
+  status: submitted

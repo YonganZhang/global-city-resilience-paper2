@@ -1,0 +1,81 @@
+# _pipelines/01_baseline_gciri/pipeline.yml
+# DAG 声明 (合 _meta/_schema/_pipeline_yml.yml)
+
+name: baseline_gciri
+version: V28/P5.2 (v28_ucdb full-run key + V27.3.19 parliament)
+description: "GCIRI 主 pipeline: 议会 → 三能力 → R_Ph 下推 → 梯形"
+related_phase: "P5"
+related_method: "[[_议会制多智能体审议]]"
+
+steps:
+  - step_id: step_01_load_metadata
+    file: step_01_load_metadata.py
+    depends_on: []
+    description: "从 Master Excel 读 18 indicator + 议会模型; 按 --mode single/b50/full6275 生成 cities/city_records (full=5862 UCDB 行级 key)"
+    input_artifacts: ["_data/V27_3_19_Master_Control.xlsx", "_outputs/master_v27_6/master_v28_ucdb.parquet"]
+    output_artifacts: ["outputs/v<NN>/step_01_meta.yml"]
+
+  - step_id: step_02_load_tavily
+    file: step_02_load_tavily.py
+    depends_on: [step_01_load_metadata]
+    description: "读 _data/tavily_cache_clean/<display_city>.txt; full city_key 自动剥回 display city 查缓存"
+    input_artifacts: ["_data/tavily_cache_clean/*.txt"]
+    output_artifacts: ["outputs/v<NN>/step_02_tavily.yml"]
+
+  - step_id: step_03_run_r1
+    file: step_03_run_r1.py
+    depends_on: [step_01_load_metadata, step_02_load_tavily]
+    description: "议会 R1: 8 评委 × per-indicator × 10 城 batch (5 batch × 18 ind = 90 calls × 8 评委 = 720 LLM)"
+    output_artifacts: ["outputs/v<NN>/step_03_r1.csv", "outputs/v<NN>/step_03_r1_evidence/"]
+
+  - step_id: step_04_run_r2
+    file: step_04_run_r2.py
+    depends_on: [step_03_run_r1]
+    description: "议会 R2: 看 R1 全 packet, 坚持/调整都给理由 (CoT 群体版, Multi-Agent Debate)"
+    output_artifacts: ["outputs/v<NN>/step_04_r2.csv"]
+
+  - step_id: step_05_consul
+    file: step_05_consul.py
+    depends_on: [step_04_run_r2]
+    description: "Consul (gemini-2.5-pro) R2 后终审 (不是 R1.5)"
+    output_artifacts: ["outputs/v<NN>/step_05_consul.csv"]
+
+  - step_id: step_06_compute_f
+    file: step_06_compute_f.py
+    depends_on: [step_05_consul]
+    description: "F = mean(LLM 给的 6 个 ABS resilience), 按 step_01 city key 聚合"
+    output_artifacts: ["outputs/v<NN>/step_06_f.csv"]
+
+  - step_id: step_07_compute_r_ph_city
+    file: step_07_compute_r_ph_city.py
+    depends_on: [step_01_load_metadata]   # 有 step_05_consul 时接 V_ratio; 无则 V=1 smoke test
+    description: "城市物理风险：默认 analytic 保留原 HEV 响应及 soft-cap；显式 --downscale-method trapezoidal 用步长≤0.001的梯形面积累加计算等效倍数；按 ucdb_id 抽行和接 V_ratio"
+    related_function: "[[_code/giri/r_ph_downscale.py:compute_r_ph_city]]"
+    output_artifacts: ["outputs/v<NN>/step_07_r_ph_city.csv", "outputs/v<NN>/step_07_r_ph_city_full_6275.parquet", "outputs/v<NN>/step_07_method.json"]
+
+  - step_id: step_08_compute_capacities
+    file: step_08_compute_capacities.py
+    depends_on: [step_06_compute_f, step_07_compute_r_ph_city]
+    description: "cap_abs = min(R_Ph_city,1)×100×(1+F)/2; cap_resp/rest = mean(...)×100"
+    related_function: "[[_code/giri/trapezoid.py:compute_three_capabilities]]"
+    output_artifacts: ["outputs/v<NN>/step_08_capacities.csv"]
+
+  - step_id: step_09_compute_gciri
+    file: step_09_compute_gciri.py
+    depends_on: [step_08_compute_capacities]
+    description: "梯形 21 点 piecewise-linear → city-level GIRI (论文叫 GCIRI)"
+    related_function: "[[_code/giri/trapezoid.py:compute_trapezoid_giri]]"
+    output_artifacts: ["outputs/v<NN>/step_09_gciri.csv"]
+
+notes: |
+  2026-09-06 梯形等效降尺度：run_all.py 仅向 step07 转发 --downscale-method。
+  compare_downscale_methods.py 使用冻结的5862城输入独立重放 step07–09，不调用付费模型。
+  当前候选与原表在两位小数 GCIRI、三能力、排名、弱点和六模式上相同；候选单独登记，不替换论文原数据。
+  V27.3.19 议会改造 (用户拍板):
+  - per-indicator × 10 城 batch (input ~50K tokens, 8 评委 128K 安全)
+  - anchor 档位匹配 (多对一 + 空档 OK)
+  - LLM 输出 tier label, 代码后处理 mid-point/100 → resilience
+  - Tavily 读 _data/tavily_cache_clean/ 软链接资产; full key 只作内部唯一键, cache 用 display city
+  - P5.2 (2026-06-06): full6275 历史模式已改为 active master 行级 key; v28_ucdb 当前为 5862 行
+  - 付费 LLM 防误触: run_all.py / launcher / _code/llm/client.py 默认拒绝真实 API 调用;
+    测试用 --dry-run 或 --skip-llm, 真跑需显式 GCIRI_ALLOW_PAID_LLM=1 或 --allow-paid-llm.

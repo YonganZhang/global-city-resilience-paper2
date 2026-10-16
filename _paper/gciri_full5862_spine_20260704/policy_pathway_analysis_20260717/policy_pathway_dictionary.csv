@@ -1,0 +1,13 @@
+policy_type_id,constraint_source,weakest_dimension,screening_pathway,claim_boundary
+H-A,hazard-dominant,absorptive,residual-risk management plus risk reduction and protective infrastructure,Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+H-R,hazard-dominant,response,"residual-risk management plus preparedness, emergency logistics and communication",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+H-T,hazard-dominant,restorative,"residual-risk management plus recovery finance, social protection and reconstruction capacity",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+C-A,capacity-dominant,absorptive,targeted risk reduction and protective infrastructure,Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+C-R,capacity-dominant,response,"targeted preparedness, emergency logistics and communication",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+C-T,capacity-dominant,restorative,"targeted recovery finance, social protection and reconstruction capacity",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+X-A,compound,absorptive,sequenced multi-sector package led by risk reduction and protective infrastructure,Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+X-R,compound,response,"sequenced multi-sector package led by preparedness, emergency logistics and communication",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+X-T,compound,restorative,"sequenced multi-sector package led by recovery finance, social protection and reconstruction capacity",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+M-A,benchmark-saturated,absorptive,"maintenance and stress testing, with monitoring of risk reduction and protective infrastructure",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+M-R,benchmark-saturated,response,"maintenance and stress testing, with monitoring of preparedness, emergency logistics and communication",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.
+M-T,benchmark-saturated,restorative,"maintenance and stress testing, with monitoring of recovery finance, social protection and reconstruction capacity",Formula-based screening priority; not a causal intervention effect or cost-benefit estimate.

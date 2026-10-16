@@ -1,0 +1,12 @@
+group,left_city,left_key,left_iso3,left_gciri,left_absorptive_strength,left_response_strength,left_restorative_capacity,left_r_ph,right_city,right_key,right_iso3,right_gciri,right_absorptive_strength,right_response_strength,right_restorative_capacity,right_r_ph,gciri_gap_left_minus_right,distance_km,status
+usa_mexico_border,San Diego,San Diego [USA; UCDB 2471],USA,90.73,88.29,84.17,84.17,0.1887,Tijuana,Tijuana [MEX; UCDB 507],MEX,56.78,48.9,56.67,64.17,0.6102,33.95,28.9,ok
+usa_mexico_border,Brownsville,Brownsville [USA; UCDB 5731],USA,61.42,57.07,60.0,43.33,0.563,Matamoros,Matamoros [MEX; UCDB 6696],MEX,59.75,58.56,50.83,60.0,0.5376,1.67,9.4,ok
+usa_mexico_border,Mexico City,Mexico City [MEX; UCDB 5402],MEX,52.72,24.59,67.5,69.17,0.9999,San Diego,San Diego [USA; UCDB 2471],USA,90.73,88.29,84.17,84.17,0.1887,-38.01,2318.3,ok
+pearl_river_delta,Hong Kong,Hong Kong [CHN; UCDB 11185],CHN,85.16,60.15,87.92,90.0,0.6483,Shenzhen,Shenzhen [CHN; UCDB 999991],CHN,81.36,54.1,85.0,89.17,0.7519,3.8,28.2,ok
+pearl_river_delta,Hong Kong,Hong Kong [CHN; UCDB 11185],CHN,85.16,60.15,87.92,90.0,0.6483,Guangzhou,Guangzhou [CHN; UCDB 10933],CHN,76.42,54.89,80.83,80.42,0.7243,8.74,86.2,ok
+pearl_river_delta,Shenzhen,Shenzhen [CHN; UCDB 999991],CHN,81.36,54.1,85.0,89.17,0.7519,Guangzhou,Guangzhou [CHN; UCDB 10933],CHN,76.42,54.89,80.83,80.42,0.7243,4.94,59.6,ok
+pearl_river_delta,Hong Kong,Hong Kong [CHN; UCDB 11185],CHN,85.16,60.15,87.92,90.0,0.6483,Zhuhai [Macau],Zhuhai [Macau] [CHN; UCDB 11079],CHN,75.23,62.32,76.67,73.33,0.5989,9.93,67.9,ok
+europe_border,Vienna,Vienna [AUT; UCDB 1081],AUT,82.34,67.97,82.92,81.67,0.5451,Bratislava,Bratislava [SVK; UCDB 89],SVK,82.75,77.08,78.33,75.42,0.3781,-0.41,57.0,ok
+gulf_comparison,Dubai,Dubai [ARE; UCDB 1007],ARE,87.14,79.67,84.17,85.0,0.3296,Riyadh,Riyadh [SAU; UCDB 3026],SAU,93.07,94.17,75.0,81.25,0.0872,-5.93,871.0,ok
+china_india_anchors,Shanghai,Shanghai [CHN; UCDB 11345],CHN,75.76,55.51,78.75,83.33,0.7214,Mumbai,Mumbai [IND; UCDB 7599],IND,50.05,20.42,69.17,62.08,1.0,25.71,5025.1,ok
+china_india_anchors,Beijing,Beijing [CHN; UCDB 8745],CHN,83.29,71.25,81.25,90.42,0.4663,New Delhi,New Delhi [IND; UCDB 7963],IND,40.63,19.59,55.0,63.75,1.0,42.66,3776.4,ok

@@ -1,0 +1,30 @@
+{
+  "version": "V2",
+  "method": "21-point piecewise-linear trapezoid + 4-variable RR_ymin regression",
+  "fitted_on": "国家级GIRI复现/raw_country_wide.xlsx (170 countries)",
+  "rr_ymin_regression": {
+    "features": [
+      "F",
+      "cap_resp",
+      "cap_rest",
+      "raw_PC_ymin"
+    ],
+    "coefficients": {
+      "F": -5.72673830565694,
+      "cap_resp": -0.30284774616938337,
+      "cap_rest": 0.10387209781712703,
+      "raw_PC_ymin": 2.4886174342111054
+    },
+    "intercept": 96.24818255062495,
+    "MAE": 1.1096944230204382,
+    "R2": 0.9940477782656238
+  },
+  "rr_ymax_global": 99.8,
+  "n_curve_points": 21,
+  "validation_170_countries": {
+    "MAE": 1.1558001757837824,
+    "R2": 0.9968263582888897,
+    "max_error": 6.3941102062064274
+  },
+  "note": "RR_ymin_country = F*c[0] + cap_resp*c[1] + cap_rest*c[2] + raw_PC_ymin*c[3] + intercept"
+}

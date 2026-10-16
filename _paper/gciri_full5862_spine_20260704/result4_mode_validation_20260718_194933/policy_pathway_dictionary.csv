@@ -1,0 +1,7 @@
+mode_code,development_mode,screening_pathway
+M1,balanced high-resilience,Maintain strengths and stress-test compound risks
+M2,imbalanced high-resilience,Protect overall gains and repair the weaker capacity
+M3,mixed-deficit transition,Coordinate improvements across multiple capacities
+M4,single-bottleneck transition,Remove the dominant capacity bottleneck first
+M5,compound low-resilience,Build foundational capacity across all three dimensions
+M6,single-deficit low-resilience,Repair the severe deficit while protecting remaining capacity
