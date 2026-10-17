@@ -16,7 +16,7 @@ license: MIT
 repository-code: "https://github.com/YonganZhang/global-city-resilience-paper2"
 preferred-citation:
   type: article
-  title: "Global urban resilience divides, capacity weaknesses and development priorities"
+  title: "Global city infrastructure resilience, weaknesses and development by an LLM agent council"
   authors:
     - family-names: Zhang
       given-names: Yongan

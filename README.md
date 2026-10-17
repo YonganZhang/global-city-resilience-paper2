@@ -1,7 +1,7 @@
 # Global City Infrastructure Resilience Index (GCIRI) for 5,862 cities
 
 This repository contains the code and derived data behind the manuscript
-*Global urban resilience divides, capacity weaknesses and development priorities*
+*Global city infrastructure resilience, weaknesses and development by an LLM agent council*
 (Zhang, Jiang, Guo, Chen and Yan; submitted). The study assesses urban
 infrastructure resilience for 5,862 cities with at least 100,000 residents in
 161 countries. A multi-agent council of eight large language models rates 18
