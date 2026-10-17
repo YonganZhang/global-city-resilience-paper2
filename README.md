@@ -59,6 +59,13 @@ that serves the eight registered models. Set `LLM_BASE_URL`, `LLM_API_KEY` (or
 or credential is stored in this repository. Model outputs vary over time, so a
 new run will not reproduce the released ratings exactly.
 
+Web retrieval of city sources (Stage 1 in Fig. 1) is optional and off by
+default. Set `LLM_INCLUDE_TAVILY=1` and `TAVILY_API_KEY` (or `TAVILY_API_KEYS`,
+comma-separated) to add encyclopaedia, government and international-organization
+and academic summaries to the first-round prompts. Cities without cached sources
+are searched through the Tavily API and cached under `_data/tavily_cache_clean/`.
+The released ratings were produced without retrieval.
+
 ## Data
 
 - `analysis/full_gciri_with_meta.csv`: one row per city with UCDB identifier,
