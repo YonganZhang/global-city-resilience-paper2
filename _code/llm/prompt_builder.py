@@ -16,8 +16,10 @@ prompt 三个版本:
 """
 from __future__ import annotations
 
+import csv
 import os
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -48,7 +50,8 @@ def _resolve_master_excel() -> Path:
 
 MASTER_EXCEL = _MASTER_EXCEL_CANDIDATES[0]  # 偏好路径 (用于 docstring / display)
 TAVILY_CACHE = REPO_ROOT / "_data/tavily_cache_clean"  # V27.3.20 用户拍板: 只用百科+政府+学术段, 去 [News]
-CITY_KEY_SUFFIX_RE = re.compile(r"^(?P<city>.+) \[[A-Z]{3}; UCDB \d+\]$")
+TAVILY_RAW_CACHE = REPO_ROOT / "_data/tavily_cache"     # 含 [News] 的原始检索结果
+CITY_KEY_SUFFIX_RE = re.compile(r"^(?P<city>.+) \[(?P<iso3>[A-Z]{3}); UCDB \d+\]$")
 CITY_ALIAS_SUFFIX_RE = re.compile(r"^(?P<city>.+?)\s+\[[^\]]+\]$")
 
 GOVERNANCE_NEUTRAL_REPLACE = [
@@ -184,17 +187,49 @@ def _neutralize_indicator_definition(text: str) -> str:
     return cleaned
 
 
+def _tavily_cache_stem(city: str) -> str:
+    """实时检索的缓存文件名: <城市>__<ISO3>, 避免不同国家的同名城市共用一份材料."""
+    m = CITY_KEY_SUFFIX_RE.match(city)
+    display = _city_cache_name(city).replace(" ", "_")
+    return f"{display}__{m.group('iso3')}" if m else display
+
+
+@lru_cache(maxsize=1)
+def _country_names() -> dict[str, str]:
+    with open(REPO_ROOT / "_data/master_global_cities/master_global_cities_v1.csv", encoding="utf-8") as f:
+        return {row["country_iso3"]: row["country_name"] for row in csv.DictReader(f)}
+
+
 def load_tavily_for_city(city: str) -> str:
-    """读 _data/tavily_cache/<city>.txt 软链接, 返回原始 Tavily 输出.
+    """读 _data/tavily_cache_clean/ 的城市检索材料 (先找 <城市>__<ISO3>, 再找旧的 <城市>).
 
     返回原始格式 (含 URL + 标题 + Summary), 给 LLM 前可调用 load_summaries_only() 精简.
     """
     display_city = _city_cache_name(city)
-    city_safe = display_city.replace(" ", "_")
-    f = TAVILY_CACHE / f"{city_safe}.txt"
-    if not f.exists():
-        return f"[Tavily cache missing for {display_city}]"
-    return f.read_text(encoding="utf-8")
+    for stem in (_tavily_cache_stem(city), display_city.replace(" ", "_")):
+        f = TAVILY_CACHE / f"{stem}.txt"
+        if f.exists():
+            return f.read_text(encoding="utf-8")
+    return f"[Tavily cache missing for {display_city}]"
+
+
+def retrieve_tavily_for_city(city: str) -> str:
+    """实时联网检索一个城市 (百科/新闻/政府与国际组织/学术四方向, 相关性过滤 + 敏感词遮蔽).
+
+    原始结果写 _data/tavily_cache/, 去掉 [News] 段后写 _data/tavily_cache_clean/ 并返回,
+    与已有缓存同一格式; 结果不足时 run_quick_web_context_v2 直接报错.
+    """
+    from tavily import run_quick_web_context_v2
+
+    m = CITY_KEY_SUFFIX_RE.match(city)
+    country = _country_names().get(m.group("iso3"), m.group("iso3")) if m else ""
+    raw = run_quick_web_context_v2(_clean_city_display_for_prompt(city), country)
+    clean = re.sub(r"\n?--- \[News\] Sources.*?(?=\n--- \[|\Z)", "", raw, flags=re.S).strip()
+    stem = _tavily_cache_stem(city)
+    for directory, text in ((TAVILY_RAW_CACHE, raw), (TAVILY_CACHE, clean)):
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / f"{stem}.txt").write_text(text, encoding="utf-8")
+    return clean
 
 
 def load_summaries_only(tavily_raw: str) -> str:
@@ -289,12 +324,15 @@ def build_r1_prompt(
 
     # V27.3.20 用户拍板: Tavily 改可选, 默认**不加** (避免长 prompt 让 deepseek/qwen 400).
     # 想加 Tavily 改全局开关 env LLM_INCLUDE_TAVILY=1, 或者调用方传 indicator["_include_tavily"]=True.
+    # 开启后缓存里没有的城市会实时联网检索并写入缓存 (retrieve_tavily_for_city).
     include_tavily = bool(indicator.get("_include_tavily", False)) or os.getenv("LLM_INCLUDE_TAVILY", "").lower() in ("1", "true", "yes")
     tavily_blocks = []
     if include_tavily:
         # 拼 Tavily summaries (只 Summary 字段, 去 URL+标题)
         for city in cities:
             raw = load_tavily_for_city(city)
+            if raw.startswith("[Tavily cache missing"):
+                raw = retrieve_tavily_for_city(city)
             summaries = load_summaries_only(raw)
             tavily_blocks.append(f"### {city}\n{summaries}\n")
     else:

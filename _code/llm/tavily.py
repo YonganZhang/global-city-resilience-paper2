@@ -1,94 +1,41 @@
 # tavily_websearch.py
 from __future__ import annotations
 
-import os
 import time
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 
-try:
-    from tavily import TavilyClient  # pip install tavily-python
-except Exception:  # pragma: no cover
-    TavilyClient = None  # type: ignore
+import requests
+
+TAVILY_URL = "https://api.tavily.com/search"
+_LIMIT_STATUS = {429, 432, 433}  # 限流或额度用尽 → 换下一个 key
+_KEY_IDX = 0
 
 
 def _get_tavily_keys() -> List[str]:
-    keys: List[str] = []
-    try:
-        import sys
-        from pathlib import Path
-        _llm_dir = str(Path(__file__).resolve().parents[2] / "LLM")
-        if _llm_dir not in sys.path:
-            sys.path.insert(0, _llm_dir)
-        import llm_config  # type: ignore
-        ks = getattr(llm_config, "TAVILY_KEYS", None)
-        if isinstance(ks, list):
-            keys = [k.strip() for k in ks if isinstance(k, str) and k.strip()]
-        if not keys:
-            k = getattr(llm_config, "TavilyAPI", "")
-            if isinstance(k, str) and k.strip():
-                keys = [k.strip()]
-    except Exception:
-        pass
-    env_k = os.getenv("TAVILY_API_KEY", "").strip()
-    if env_k and env_k not in keys:
-        keys.append(env_k)
-    return keys
+    """Tavily key 只从 _config.TAVILY_KEYS 取（环境变量 TAVILY_API_KEYS / TAVILY_API_KEY）。"""
+    from _config import TAVILY_KEYS
+    return [k.strip() for k in TAVILY_KEYS if isinstance(k, str) and k.strip()]
 
 
-def _get_tavily_key() -> str:
-    ks = _get_tavily_keys()
-    return ks[0] if ks else ""
+def _post_search(**payload) -> Dict[str, Any]:
+    """直连 Tavily REST 搜索一次；遇限流换下一个 key，其他错误直接抛出。
 
-
-def _clear_proxy_for_tavily():
-    """临时清除代理环境变量，让 Tavily SDK 直连（宁波机 Clash 会拦截 Tavily）。"""
-    _saved = {}
-    for k in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
-        if k in os.environ:
-            _saved[k] = os.environ.pop(k)
-    return _saved
-
-def _restore_proxy(saved):
-    """恢复之前保存的代理环境变量。"""
-    for k, v in saved.items():
-        os.environ[k] = v
-
-_KEY_IDX = 0
-
-def _client(offset: int = 0) -> "TavilyClient":
+    不用 tavily-python SDK：本模块名 tavily 会遮蔽 SDK 包名，SDK 也不在项目环境里。
+    """
     global _KEY_IDX
-    if TavilyClient is None:
-        raise RuntimeError("tavily-python not installed. Run: pip install tavily-python")
     keys = _get_tavily_keys()
     if not keys:
-        raise RuntimeError("Tavily API key not set. Set llm_config.TAVILY_KEYS / TavilyAPI or env TAVILY_API_KEY.")
-    idx = (_KEY_IDX + offset) % len(keys)
-    return TavilyClient(api_key=keys[idx])
-
-
-def _rotate_key():
-    global _KEY_IDX
-    keys = _get_tavily_keys()
-    if keys:
-        _KEY_IDX = (_KEY_IDX + 1) % len(keys)
-
-
-def _safe_search(c_ref, **kwargs):
-    """轮询 Tavily key：遇到限流/429 自动切换到下一个 key 重试。"""
-    keys = _get_tavily_keys()
-    last_exc = None
-    for _ in range(max(1, len(keys))):
-        try:
-            return c_ref[0].search(**kwargs)
-        except Exception as e:
-            msg = str(e).lower()
-            if "blocked" in msg or "excessive" in msg or "429" in msg or "rate" in msg:
-                _rotate_key()
-                c_ref[0] = _client()
-                last_exc = e
-                continue
-            raise
-    raise last_exc if last_exc else RuntimeError("Tavily: all keys exhausted")
+        raise RuntimeError("Tavily API key not set. Set env TAVILY_API_KEYS or TAVILY_API_KEY.")
+    session = requests.Session()
+    session.trust_env = False  # 代理会拦截 Tavily，直连
+    for _ in range(len(keys)):
+        resp = session.post(TAVILY_URL, json={"api_key": keys[_KEY_IDX % len(keys)], **payload}, timeout=30)
+        if resp.status_code in _LIMIT_STATUS:
+            _KEY_IDX += 1
+            continue
+        resp.raise_for_status()
+        return resp.json()
+    raise RuntimeError(f"Tavily: all {len(keys)} keys hit rate or plan limits")
 
 
 def run_tavily_search_category(
@@ -106,14 +53,11 @@ def run_tavily_search_category(
       - academic: Google Scholar, ResearchGate, PDF reports
     Returns: list of {title,url,content}
     """
-    _c_ref = [_client()]
-    _saved_proxy = _clear_proxy_for_tavily()  # 清除代理，让 Tavily 直连
-
     if sleep_sec > 0:
         time.sleep(sleep_sec)
 
     if category_type == "encyclopedia":
-        resp = _safe_search(_c_ref, 
+        resp = _post_search(
             query=query,
             search_depth="basic",
             max_results=min(max_results, 5),
@@ -126,28 +70,26 @@ def run_tavily_search_category(
             ],
         )
     elif category_type == "news":
-        resp = _safe_search(_c_ref, 
+        resp = _post_search(
             query=query,
             search_depth="basic",
             topic="news",
             max_results=max_results,
         )
     elif category_type == "government":
-        resp = _safe_search(_c_ref, 
+        resp = _post_search(
             query=query + " (site:worldbank.org OR site:un.org OR site:undrr.org OR site:unhabitat.org OR site:gov)",
             search_depth="basic",
             max_results=max_results,
         )
     elif category_type == "academic":
-        resp = _safe_search(_c_ref, 
+        resp = _post_search(
             query=query + " (site:scholar.google.com OR site:researchgate.net OR site:sciencedirect.com OR filetype:pdf OR report)",
             search_depth="basic",
             max_results=max_results,
         )
     else:
-        resp = _safe_search(_c_ref, query=query, search_depth="basic", max_results=max_results)
-
-    _restore_proxy(_saved_proxy)  # 恢复代理（不影响其他程序）
+        resp = _post_search(query=query, search_depth="basic", max_results=max_results)
 
     results = resp.get("results", []) if isinstance(resp, dict) else []
     out: List[Dict[str, Any]] = []
@@ -174,10 +116,10 @@ def run_multi_source_search(
     Returns dict with keys: wiki/news/gov/acad
     """
     return {
-        "wiki": search_category(user_question, "encyclopedia", max_results=wiki_max),
-        "news": search_category(user_question, "news", max_results=news_max),
-        "gov": search_category(user_question, "government", max_results=gov_max),
-        "acad": search_category(user_question, "academic", max_results=acad_max),
+        "wiki": run_tavily_search_category(user_question, "encyclopedia", max_results=wiki_max),
+        "news": run_tavily_search_category(user_question, "news", max_results=news_max),
+        "gov": run_tavily_search_category(user_question, "government", max_results=gov_max),
+        "acad": run_tavily_search_category(user_question, "academic", max_results=acad_max),
     }
 
 
@@ -278,8 +220,8 @@ def run_quick_web_context(user_question: str, city_name: str = "", country_name:
     """
     One-call helper: search + filter + format. Raises if Tavily isn't available/configured.
     """
-    bundle = multi_source_search(user_question)
-    text = format_search_context(bundle, city_name=city_name, country_name=country_name)
+    bundle = run_multi_source_search(user_question)
+    text = build_search_context(bundle, city_name=city_name, country_name=country_name)
     return text or ""
 
 
@@ -299,10 +241,10 @@ def run_quick_web_context_v2(city_name: str, country_name: str, min_results: int
         "acad": f'"{city_name}" "{city_name}" urban resilience inequality environment {country_name}',
     }
     bundle = {
-        "wiki": search_category(queries_r1["wiki"], "encyclopedia", max_results=10),
-        "news": search_category(queries_r1["news"], "news", max_results=10),
-        "gov": search_category(queries_r1["gov"], "government", max_results=10),
-        "acad": search_category(queries_r1["acad"], "academic", max_results=10),
+        "wiki": run_tavily_search_category(queries_r1["wiki"], "encyclopedia", max_results=10),
+        "news": run_tavily_search_category(queries_r1["news"], "news", max_results=10),
+        "gov": run_tavily_search_category(queries_r1["gov"], "government", max_results=10),
+        "acad": run_tavily_search_category(queries_r1["acad"], "academic", max_results=10),
     }
 
     total = sum(len(v) for v in bundle.values())
@@ -317,7 +259,7 @@ def run_quick_web_context_v2(city_name: str, country_name: str, min_results: int
         }
         for key in queries_r2:
             if len(bundle[key]) < 5:
-                extra = search_category(queries_r2[key], "general", max_results=10)
+                extra = run_tavily_search_category(queries_r2[key], "general", max_results=10)
                 # 去重：只添加 URL 不重复的结果
                 existing_urls = {it.get("url", "") for it in bundle[key]}
                 for item in extra:
@@ -328,7 +270,7 @@ def run_quick_web_context_v2(city_name: str, country_name: str, min_results: int
 
     # ── 第 3 轮：纯通用兜底 ──
     if total < min_results:
-        fallback = search_category(
+        fallback = run_tavily_search_category(
             f'{city_name} {country_name} city overview',
             "general", max_results=20
         )
@@ -350,7 +292,7 @@ def run_quick_web_context_v2(city_name: str, country_name: str, min_results: int
             f"gov={len(bundle['gov'])}, acad={len(bundle['acad'])})"
         )
 
-    text = format_search_context(bundle, city_name=city_name, country_name=country_name)
+    text = build_search_context(bundle, city_name=city_name, country_name=country_name)
     if not text or len(text) < 50:
         raise RuntimeError(f"Tavily search context too short ({len(text or '')} chars) for {city_name}")
 
