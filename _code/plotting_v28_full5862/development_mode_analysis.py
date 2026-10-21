@@ -179,6 +179,19 @@ def compute_development_modes(
     return result
 
 
+def classify_capacities(city: pd.DataFrame) -> pd.DataFrame:
+    """Direction-corrected strengths from cap_abs, cap_resp and cap_rest, the weakest
+    capacity and the six weakness patterns at the base thresholds."""
+    city = city.copy()
+    city["absorptive_strength"] = 100.0 - city["cap_abs"]
+    city["response_strength"] = 100.0 - city["cap_resp"]
+    city["restorative_strength"] = city["cap_rest"]
+    city["weakest_dimension"] = city[
+        ["absorptive_strength", "response_strength", "restorative_strength"]
+    ].idxmin(axis=1).str.removesuffix("_strength")
+    return compute_development_modes(city, **BASE_PARAMETERS)
+
+
 def load_mode_city_data() -> pd.DataFrame:
     city = load_full_gciri().copy()
     city = city.merge(
@@ -203,22 +216,12 @@ def load_mode_city_data() -> pd.DataFrame:
         & ~city["income_group"].eq("High income"),
         "north_south_proxy",
     ] = "South proxy"
-    city["absorptive_strength"] = 100.0 - city["cap_abs"]
-    city["response_strength"] = 100.0 - city["cap_resp"]
-    city["restorative_strength"] = city["cap_rest"]
+    city = classify_capacities(city)
     strength_columns = [
         "absorptive_strength",
         "response_strength",
         "restorative_strength",
     ]
-    city["weakest_dimension"] = city[strength_columns].idxmin(axis=1).map(
-        {
-            "absorptive_strength": "absorptive",
-            "response_strength": "response",
-            "restorative_strength": "restorative",
-        }
-    )
-    city = compute_development_modes(city, **BASE_PARAMETERS)
 
     if len(city) != EXPECTED_FULL_ROWS:
         raise ValueError(

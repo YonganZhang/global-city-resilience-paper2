@@ -14,7 +14,26 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_FULL_ROWS = 5862
-FULL_RUN_REL = Path("_pipelines/01_baseline_gciri/outputs/v28_full5862_20260702_020421")
+# Paper run: model ratings of the 2026-07-02 full run; the vote fallback and steps 06-09 recomputed on
+# 2026-10-21 after the night-light gap fill and the A- tier fixes in step_07 and step_05e
+# (_pipelines/01_baseline_gciri/replay_post_council.py --from-step 05e). The parent run keeps the
+# model-call files; this run links them.
+# GCIRI_PAPER_RUN=<run id> switches every paper analysis to another run, e.g. the parent run for a
+# reproduction check.
+FULL_RUN_REL = Path("_pipelines/01_baseline_gciri/outputs") / os.environ.get(
+    "GCIRI_PAPER_RUN", "v28_full5862_viirsfill_tierfix_20261021")
+HEV_REL = FULL_RUN_REL / "step_07_r_ph_city.csv"
+# Paper analyses derived from the run, regenerated in this order after any run change (each script
+# writes a new stamped directory; update the stamp here only).
+PAPER_DIR_REL = Path("_paper/gciri_full5862_spine_20260704")
+MODE_DIR_REL = PAPER_DIR_REL / "result4_mode_validation_20261021_195143"  # development_mode_analysis.py
+POLICY_DIR_REL = PAPER_DIR_REL / "policy_pathway_analysis_20261021_195143"  # policy_pathway_analysis.py
+RESTORATIVE_DIR_REL = PAPER_DIR_REL / "result4_restorative_boundary_20261021_195227"  # restorative_mode_boundary.py
+SUPPLEMENTARY_TABLES_REL = Path("_figures/gciri_full5862_supplementary_tables_20261021_200350")  # supplementary_tables.py
+DOWNSCALING_SENSITIVITY_REL = PAPER_DIR_REL / "downscaling_sensitivity_20261022_001624"  # downscaling_sensitivity.py
+# Council versus single-model comparison (Supplementary Note 4, Supplementary Table 3 and Fig. 2),
+# written by council_single_model_comparison.py and council_repeat_analysis.py.
+COUNCIL_COMPARISON_REL = Path("_figures/gciri_full5862_council_comparison_20261021")
 FULL_GCIRI_REL = FULL_RUN_REL / "analysis/full_gciri_with_meta.csv"
 COUNTRY_SPREAD_REL = FULL_RUN_REL / "analysis/within_country_spread.csv"
 COUNTRY_GIRI_REL = FULL_RUN_REL / "analysis/country_vs_official_giri.csv"

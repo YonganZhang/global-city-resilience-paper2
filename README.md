@@ -18,11 +18,11 @@ benchmark is released separately at
 | Path | Contents |
 |---|---|
 | `_pipelines/01_baseline_gciri/` | Assessment pipeline: metadata (step 1), council rounds R1, R2 and Consul (steps 3-5), absorptive factor (6), physical-risk downscaling (7), capacities (8) and GCIRI (9) |
-| `_pipelines/.../outputs/v28_full5862_20260702_020421/` | Results of the full run: council indicator ratings (`step_05_consul.csv`), intermediate tables and the city results (`analysis/full_gciri_with_meta.csv`) |
+| `_pipelines/.../outputs/v28_full5862_viirsfill_tierfix_20261021/` | Results of the full run: council indicator ratings (`step_05_consul.csv`), intermediate tables and the city results (`analysis/full_gciri_with_meta.csv`) |
 | `_code/llm/` | Prompt builders, indicator definitions, rating scale and the gateway client used by the council |
 | `_code/giri/` | Physical-risk downscaling and the GIRI performance geometry |
 | `_code/plotting_v28_full5862/` | Analyses and figure code for the main, Extended Data and Supplementary figures |
-| `_paper/.../` | Derived analysis tables used by the figures (weakness patterns, sensitivity, validation) |
+| `_paper/.../`, `_figures/.../source_data/` | Derived analysis tables used by the figures and tables (weakness patterns, sensitivity to thresholds and downscaling settings, reference comparisons) |
 | `_outputs/master_v27_6/master_v28_ucdb.parquet` | City input table: urban-centre identifiers, hazard, exposure and national reference values |
 | `_data/` | Country metadata, the indicator prompt and council roster workbook, and GIRI calibration coefficients |
 | `analysis/mainline_diagnostics.py` | Reproduces the statistics reported in Results and Discussion |
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 # GCIRI from the released council ratings (exactly reproduces analysis/full_gciri_with_meta.csv)
 cd _pipelines/01_baseline_gciri
 mkdir -p outputs/rerun
-cp outputs/v28_full5862_20260702_020421/step_01_meta.yml outputs/v28_full5862_20260702_020421/step_05_consul.csv outputs/rerun/
+cp outputs/v28_full5862_viirsfill_tierfix_20261021/step_01_meta.yml outputs/v28_full5862_viirsfill_tierfix_20261021/step_05_consul.csv outputs/rerun/
 for step in step_06_compute_f step_07_compute_r_ph_city step_08_compute_capacities step_09_compute_gciri; do
   python3 $step.py --out outputs/rerun
 done
@@ -44,6 +44,9 @@ cd ../..
 
 # Statistics reported in the manuscript
 python3 analysis/mainline_diagnostics.py
+
+# Sensitivity to the downscaling parameters and exposure bounds (Supplementary Note 3 and Table 4)
+python3 _code/plotting_v28_full5862/downscaling_sensitivity.py
 
 # Figures (written to _figures/)
 cd _code/plotting_v28_full5862
@@ -77,12 +80,25 @@ The released ratings were produced without retrieval.
   with retained and excluded council models and evidence weights. The free-text
   reasoning of the models is not released.
 - `step_07_r_ph_city.csv`: local hazard (`h_ratio`), exposure (`e_ratio`) and
-  vulnerability (`v_ratio`) ratios and the downscaled physical risk.
+  vulnerability (`v_ratio`) ratios and the downscaled physical risk;
+  `step_07_r_ph_city_full_6275.parquet` holds the same quantities at full precision
+  together with the exposure fields of the city input table.
+- `_outputs/master_v27_6/master_v28_ucdb.parquet`: city input table. Night-time
+  light is the 2025 average of the VIIRS monthly composites; a tile between 10°W
+  and 0° and between 40°N and 75°N that is absent from the exported composites is
+  filled from the 2024 annual VIIRS Nighttime Lights composite (Supplementary Note 2).
+- Extended Data Tables 2 and 3 and Supplementary Tables 1, 2 and 4 are given as
+  data in `_figures/.../source_data/` and `_paper/.../downscaling_sensitivity_*/`.
+  The first row of Extended Data Table 3 and the council comparison of
+  Supplementary Note 4 use the first-round ratings of the individual models,
+  which are not included, so `supplementary_tables.py` runs only on the complete
+  run directory.
 
 Not included: raw hazard rasters, population and night-time-light grids, urban
-centre polygons, model logs and API records. These are available from their
-providers: GHSL Urban Centre Database R2024A, GIRI (UNEP-GRID and CDRI),
-WorldPop and NASA Black Marble VIIRS.
+centre polygons, model logs, first-round ratings of the individual models and
+API records. The upstream data are available from their providers: GHSL Urban
+Centre Database R2024A, GIRI (UNEP-GRID and CDRI), WorldPop and the VIIRS
+night-time light composites of the Earth Observation Group.
 
 ## Licences
 

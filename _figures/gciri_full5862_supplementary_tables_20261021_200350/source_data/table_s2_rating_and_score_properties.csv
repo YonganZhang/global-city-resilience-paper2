@@ -1,0 +1,4 @@
+Analysis,n,Result
+Unweighted mean of the eight first-round ratings compared with council ratings,"105,516 city indicators","Pearson’s r = 0.957, mean absolute difference 5.74 points"
+Cities at the lower bound of the GCIRI scale,"5,862 cities",23 cities with GCIRI of 0
+Ten-point increase in restorative strength,"5,862 cities","GCIRI decreases by more than 0.01 points in 1,397 cities (23.8%)"

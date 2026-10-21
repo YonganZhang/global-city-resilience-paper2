@@ -12,38 +12,54 @@ try:
     from ._shared import (
         EXPECTED_FULL_ROWS,
         FULL_GCIRI_REL,
+        FULL_RUN_REL,
+        MASTER_UCDB_REL,
+        MODE_DIR_REL,
+        PAPER_DIR_REL,
+        POLICY_DIR_REL,
         PROJECT_ROOT,
+        RESTORATIVE_DIR_REL,
         apply_style,
         load_full_gciri,
+        load_master_ucdb,
         load_plotting_backend,
     )
 except ImportError:
     from _shared import (
         EXPECTED_FULL_ROWS,
         FULL_GCIRI_REL,
+        FULL_RUN_REL,
+        MASTER_UCDB_REL,
+        MODE_DIR_REL,
+        PAPER_DIR_REL,
+        POLICY_DIR_REL,
         PROJECT_ROOT,
+        RESTORATIVE_DIR_REL,
         apply_style,
         load_full_gciri,
+        load_master_ucdb,
         load_plotting_backend,
     )
 
 
-PAPER_DIR_REL = Path("_paper/gciri_full5862_spine_20260704")
-SUPPLEMENTARY_SOURCE_REL = Path(
-    "_figures/gciri_full5862_supplementary_20260718_211003/source_data"
-)
-MODE_SUMMARY_REL = (
+MODE_SUMMARY_REL = MODE_DIR_REL / "mode_summary.csv"
+MODE_CHANGE_REL = RESTORATIVE_DIR_REL / "scenario_mode_change_summary.csv"
+POLICY_CITY_REL = POLICY_DIR_REL / "city_policy_typology.csv"
+# County FEMA National Risk Index scores matched to the 184 US cities on 2026-07-05.
+FEMA_JOIN_REL = (
     PAPER_DIR_REL
-    / "result4_mode_validation_20260718_194933"
-    / "mode_summary.csv"
+    / "_history/markdown_era_2026-07/external_validation_us_fema_20260705_034300/us_fema_nri_city_join.csv"
 )
-MODE_CHANGE_REL = (
-    PAPER_DIR_REL
-    / "result4_restorative_boundary_20260718_201645"
-    / "scenario_mode_change_summary.csv"
-)
-COVARIATE_REL = SUPPLEMENTARY_SOURCE_REL / "figs10_covariate_correlations.csv"
-FEMA_REL = SUPPLEMENTARY_SOURCE_REL / "figs10_fema_correlations.csv"
+REFERENCE_VARIABLES = [  # (label, master column or FEMA score, relation to GCIRI)
+    ("Official national GIRI", "GIRI__RAW_nat", "National input to GCIRI"),
+    ("City population", "pop_2025", "City characteristic"),
+    ("VIIRS night-time lights", "exp_ntl_city__RAW", "Component of the exposure input"),
+    ("Population \u00d7 night-time lights", "exp_pop_ntl_city__RAW", "Exposure input"),
+    ("FEMA NRI community resilience", "RESL_SCORE", "US county index"),
+    ("FEMA NRI social vulnerability", "SOVI_SCORE", "US county index"),
+    ("FEMA NRI expected annual loss", "EAL_SCORE", "US county index"),
+    ("FEMA NRI risk index", "RISK_SCORE", "US county index"),
+]
 
 INK = "#252A2E"
 MUTED = "#697278"
@@ -79,103 +95,57 @@ def build_output_dir(output_dir: Path | None) -> Path:
     return output_dir
 
 
+def reference_correlation_table(truth: pd.DataFrame) -> pd.DataFrame:
+    """Extended Data Table 2: Spearman correlation of city GCIRI with reference variables."""
+    master = load_master_ucdb(columns=["ucdb_id", "pop_2025", "exp_ntl_city__RAW", "exp_pop_ntl_city__RAW", "GIRI__RAW_nat"])
+    cities = truth[["city", "ucdb_id", "gciri"]].merge(master, on="ucdb_id", how="left", validate="one_to_one")
+    fema = load_csv(FEMA_JOIN_REL, {"city", "RESL_SCORE", "SOVI_SCORE", "EAL_SCORE", "RISK_SCORE"})
+    cities = cities.merge(fema.drop(columns=[c for c in fema.columns if c not in
+                                             {"city", "RESL_SCORE", "SOVI_SCORE", "EAL_SCORE", "RISK_SCORE"}]),
+                          on="city", how="left", validate="one_to_one")
+    rows = []
+    for label, column, relation in REFERENCE_VARIABLES:
+        pair = cities[["gciri", column]].dropna()
+        rows.append({"Reference variable": label, "n": f"{len(pair):,}",
+                     "Spearman\u2019s \u03c1": f"{pair['gciri'].corr(pair[column], method='spearman'):.2f}",
+                     "Relation to GCIRI": relation})
+    return pd.DataFrame(rows)
+
+
+def rating_and_score_table(truth: pd.DataFrame) -> pd.DataFrame:
+    """Extended Data Table 3: rating aggregation and properties of the GCIRI score."""
+    import sys
+    sys.path.append(str(PROJECT_ROOT / "_code" / "llm"))
+    from tier_to_score import TIER_TO_MIDPOINT
+
+    run = PROJECT_ROOT / FULL_RUN_REL
+    first = pd.read_csv(run / "step_03_r1.csv", usecols=["indicator", "city", "tier"])
+    council = pd.read_csv(run / "step_05_consul.csv", usecols=["indicator", "city", "tier"])
+    mean8 = first.assign(score=first["tier"].map(TIER_TO_MIDPOINT)).groupby(["indicator", "city"])["score"].mean()
+    pair = council.assign(council=council["tier"].map(TIER_TO_MIDPOINT)).set_index(["indicator", "city"])[["council"]]
+    pair = pair.join(mean8.rename("mean8"), how="inner").dropna()
+    scenario = load_csv(POLICY_CITY_REL, {"city", "delta_restorative_10pp_raw"})
+    falls = scenario["delta_restorative_10pp_raw"].lt(-0.01)
+    at_floor = truth["gciri"].eq(0)
+    return pd.DataFrame([
+        {"Analysis": "Unweighted mean of the eight first-round ratings compared with council ratings",
+         "n": f"{len(pair):,} city indicators",
+         "Result": f"Pearson\u2019s r = {pair['mean8'].corr(pair['council']):.3f}, mean absolute difference "
+                   f"{(pair['mean8'] - pair['council']).abs().mean():.2f} points"},
+        {"Analysis": "Cities at the lower bound of the GCIRI scale", "n": f"{len(truth):,} cities",
+         "Result": f"{int(at_floor.sum())} cities with GCIRI of 0"},
+        {"Analysis": "Ten-point increase in restorative strength", "n": f"{len(scenario):,} cities",
+         "Result": f"GCIRI decreases by more than 0.01 points in {int(falls.sum()):,} cities ({falls.mean() * 100:.1f}%)"},
+    ])
+
+
 def make_table_frames() -> dict[str, tuple[pd.DataFrame, list[Path]]]:
     truth = load_full_gciri()
     if len(truth) != EXPECTED_FULL_ROWS or truth["city"].nunique() != EXPECTED_FULL_ROWS:
         raise ValueError("Current truth must contain 5862 unique city keys")
 
-    covariates = load_csv(
-        COVARIATE_REL,
-        {"short", "n_nonmissing", "spearman_gciri", "independence_class"},
-    )
-    fema = load_csv(
-        FEMA_REL,
-        {"short", "n", "spearman"},
-    )
-    covariate_labels = {
-        "Population": "City population",
-        "Night lights": "VIIRS night-time lights",
-        "Pop. x night lights": "Population-nightlight exposure",
-        "Official GIRI": "Official national GIRI",
-    }
-    evidence_labels = {
-        "descriptive city covariate": "Descriptive city covariate",
-        "input-adjacent urban activity proxy": "Input-adjacent activity proxy",
-        "input-adjacent exposure proxy": "Input-adjacent exposure proxy",
-        "national-lineage variable": "Inherited national anchor",
-    }
-    s1_covariates = pd.DataFrame(
-        {
-            "Check": covariates["short"].map(covariate_labels),
-            "n": covariates["n_nonmissing"].astype(int),
-            "Spearman rho": covariates["spearman_gciri"],
-            "Evidence class": covariates["independence_class"].map(evidence_labels),
-        }
-    )
-    s1_fema = pd.DataFrame(
-        {
-            "Check": fema["short"],
-            "n": fema["n"].astype(int),
-            "Spearman rho": fema["spearman"],
-            "Evidence class": "US county modeled benchmark",
-        }
-    )
-    s1 = pd.concat([s1_covariates, s1_fema], ignore_index=True)
-    desired_order = [
-        "Official national GIRI",
-        "City population",
-        "VIIRS night-time lights",
-        "Population-nightlight exposure",
-        "FEMA resilience",
-        "FEMA social vulnerability",
-        "FEMA expected annual loss",
-        "FEMA composite risk",
-    ]
-    s1["order"] = s1["Check"].map({value: index for index, value in enumerate(desired_order)})
-    s1 = s1.sort_values("order").drop(columns="order").reset_index(drop=True)
-    s1["Spearman rho"] = s1["Spearman rho"].map(lambda value: f"{value:.4f}")
-
-    s2 = pd.DataFrame(
-        [
-            [
-                "Technical completeness",
-                "5862/5862 final scores; no missing GCIRI",
-                "Complete for current analyses",
-                "Not construct validity",
-            ],
-            [
-                "Council quality gate",
-                "R1-Consul r=0.9568; MAE=5.74",
-                "Stable for bounded screening",
-                "Country-prior and identity risk remain",
-            ],
-            [
-                "50-city continuity",
-                "50/50 matched; r=0.7718; MAE=11.30",
-                "Updated v28 run",
-                "Not an exact numerical extension",
-            ],
-            [
-                "Common-sense audit",
-                "No catastrophic global failure found",
-                "Conservative comparative use",
-                "Avoid precise league tables",
-            ],
-            [
-                "Reverse attribution",
-                "Extremes follow risk and capacity terms",
-                "Component-explainable",
-                "Floor clipping limits order",
-            ],
-            [
-                "Formula boundary",
-                "Restorative response is non-monotonic for 1397 cities",
-                "Keep scenarios supplementary",
-                "No optimization claim",
-            ],
-        ],
-        columns=["Audit", "Key result", "Use", "Boundary"],
-    )
+    s1 = reference_correlation_table(truth)
+    s2 = rating_and_score_table(truth)
 
     mode = load_csv(
         MODE_SUMMARY_REL,
@@ -184,8 +154,8 @@ def make_table_frames() -> dict[str, tuple[pd.DataFrame, list[Path]]]:
     s3 = mode[
         ["mode_code", "n", "share_pct", "mean_gciri", "mean_capacity_spread"]
     ].copy()
-    s3.columns = ["Mode", "n", "Share (%)", "Mean GCIRI", "Mean spread"]
-    for column in ["Share (%)", "Mean GCIRI", "Mean spread"]:
+    s3.columns = ["Mode", "n", "Share (%)", "Mean GCIRI", "Mean capacity spread"]
+    for column in ["Share (%)", "Mean GCIRI", "Mean capacity spread"]:
         s3[column] = s3[column].map(lambda value: f"{value:.2f}")
 
     mode_change = load_csv(
@@ -199,9 +169,9 @@ def make_table_frames() -> dict[str, tuple[pd.DataFrame, list[Path]]]:
         },
     )
     scenario_labels = {
-        "formula score response only": "Formula score response only",
+        "formula score response only": "GCIRI change only",
         "capacity profile change only": "Capacity profile change only",
-        "combined score and capacity change": "Combined score and capacity change",
+        "combined score and capacity change": "Both changes",
     }
     s4 = mode_change.copy()
     s4["scenario"] = s4["scenario"].map(scenario_labels)
@@ -215,23 +185,23 @@ def make_table_frames() -> dict[str, tuple[pd.DataFrame, list[Path]]]:
         ]
     ]
     s4.columns = [
-        "Scenario",
+        "Change",
         "Modes changed",
         "Modes changed (%)",
-        "Tiers changed",
-        "Tiers changed (%)",
+        "Resilience levels changed",
+        "Resilience levels changed (%)",
     ]
-    for column in ["Modes changed (%)", "Tiers changed (%)"]:
+    for column in ["Modes changed (%)", "Resilience levels changed (%)"]:
         s4[column] = s4[column].map(lambda value: f"{value:.2f}")
 
     return {
         "table_s1_validation_boundary": (
             s1,
-            [FULL_GCIRI_REL, COVARIATE_REL, FEMA_REL],
+            [FULL_GCIRI_REL, MASTER_UCDB_REL, FEMA_JOIN_REL],
         ),
-        "table_s2_quality_audits": (
+        "table_s2_rating_and_score_properties": (
             s2,
-            [FULL_GCIRI_REL, PAPER_DIR_REL / "scan_memo_20260705.md"],
+            [FULL_GCIRI_REL, FULL_RUN_REL / "step_03_r1.csv", FULL_RUN_REL / "step_05_consul.csv", POLICY_CITY_REL],
         ),
         "table_s3_development_modes": (
             s3,
@@ -251,19 +221,14 @@ def render_table(
     sources: list[Path],
     plt,
 ) -> None:
-    if stem == "table_s2_quality_audits":
+    if stem == "table_s2_rating_and_score_properties":
         row_height, font_size = 0.64, 6.8
-        col_widths = [0.20, 0.31, 0.23, 0.26]
-        wrap_by_column = {
-            "Audit": 22,
-            "Key result": 31,
-            "Use": 22,
-            "Boundary": 25,
-        }
+        col_widths = [0.40, 0.20, 0.40]
+        wrap_by_column = {"Analysis": 40, "Result": 40}
     elif stem == "table_s1_validation_boundary":
         row_height, font_size = 0.40, 7.2
         col_widths = [0.35, 0.10, 0.16, 0.39]
-        wrap_by_column = {"Check": 31, "Evidence class": 31}
+        wrap_by_column = {"Reference variable": 31, "Relation to GCIRI": 31}
     elif stem == "table_s3_development_modes":
         row_height, font_size = 0.38, 7.5
         col_widths = [0.19, 0.16, 0.22, 0.22, 0.21]
@@ -271,7 +236,7 @@ def render_table(
     else:
         row_height, font_size = 0.48, 7.2
         col_widths = [0.38, 0.16, 0.17, 0.14, 0.15]
-        wrap_by_column = {"Scenario": 31}
+        wrap_by_column = {"Change": 31}
 
     display = frame.copy()
     for column, width in wrap_by_column.items():
@@ -280,14 +245,14 @@ def render_table(
                 lambda value: fill(str(value), width=width)
             )
     header_labels = {
-        "Spearman rho": "Spearman\nrho",
+        "Spearman\u2019s \u03c1": "Spearman\u2019s\n\u03c1",
         "Share (%)": "Share\n(%)",
         "Mean GCIRI": "Mean\nGCIRI",
-        "Mean spread": "Mean\nspread",
+        "Mean capacity spread": "Mean capacity\nspread",
         "Modes changed": "Modes\nchanged",
         "Modes changed (%)": "Modes changed\n(%)",
-        "Tiers changed": "Tiers\nchanged",
-        "Tiers changed (%)": "Tiers changed\n(%)",
+        "Resilience levels changed": "Resilience levels\nchanged",
+        "Resilience levels changed (%)": "Resilience levels\nchanged (%)",
     }
     columns = [header_labels.get(column, column) for column in display.columns]
     figure_height = 0.55 + row_height * (len(display) + 1)
@@ -307,7 +272,7 @@ def render_table(
     numeric_columns = {
         index
         for index, column in enumerate(display.columns)
-        if column not in {"Check", "Evidence class", "Audit", "Key result", "Use", "Boundary", "Mode", "Scenario"}
+        if column not in {"Reference variable", "Relation to GCIRI", "Analysis", "Result", "Mode", "Change"}
     }
     for (row, column), cell in table.get_celld().items():
         cell.set_edgecolor(GRID)

@@ -1,8 +1,10 @@
-"""2026-10-17: candidate numbers for the Results main-line rewrite (author discussion, not yet in main.tex).
+"""Statistics reported in Results and Discussion, from the same prepared city table as the formal figures.
 
-Reads the same prepared city table as the formal figures and prints the diagnostics behind each proposed
-main line: two-peak distribution, same-band North/South comparison, risk-capacity coupling, North-South
-capacity ratios, restorative weakness by group and region, and pattern shares by group and income.
+Prints the two-peak distribution, same-band North/South comparison, risk-capacity coupling, North-South
+capacity ratios, restorative weakness by group and region, pattern shares by group and income, population
+by resilience level and hazard quartile, and the weakest capacity of megacities. Written on 2026-10-17 for
+the Results rewrite (promoted from _sandbox/2026-10-17-results-mainline on 2026-10-22); the public release
+ships it as analysis/mainline_diagnostics.py.
 
 Usage (repository root): python3 analysis/mainline_diagnostics.py
 """
@@ -17,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "_code/plotting_v28_full5862"))
 import development_mode_analysis as D  # noqa: E402
 import run_formal_main_figures as R  # noqa: E402
+from _shared import HEV_REL  # noqa: E402
 
 S = ["absorptive_strength", "response_strength", "restorative_strength"]
 df, _ = R._prepare_data()
@@ -58,7 +61,7 @@ print("R4 pattern shares by group (%)\n", (pd.crosstab(c.north_south_proxy, c.mo
 print("R4 pattern shares by income (%)\n", (pd.crosstab(c.income_group, c.mode_code, normalize="index") * 100).round(1).to_string())
 
 # ---- Round 2 (author asked to give Result 1 more scientific value): population, hazard by development level ----
-hev = pd.read_csv(ROOT / "_pipelines/01_baseline_gciri/outputs/v28_full5862_20260702_020421/step_07_r_ph_city.csv")
+hev = pd.read_csv(ROOT / HEV_REL)
 df = df.merge(hev[["city", "h_ratio", "e_ratio"]], on="city", validate="one_to_one")
 total = df.pop_2025.sum()
 for lo, hi in [(0, 40), (40, 70), (70, 101)]:

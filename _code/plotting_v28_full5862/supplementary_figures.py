@@ -12,8 +12,13 @@ try:
     from ._shared import (
         EXPECTED_FULL_ROWS,
         FORBIDDEN_PATH_MARKERS,
+        COUNTRY_GIRI_REL,
         FULL_GCIRI_REL,
+        MODE_DIR_REL,
+        PAPER_DIR_REL,
+        POLICY_DIR_REL,
         PROJECT_ROOT,
+        RESTORATIVE_DIR_REL,
         apply_style,
         load_country_giri,
         load_full_gciri,
@@ -24,8 +29,13 @@ except ImportError:
     from _shared import (
         EXPECTED_FULL_ROWS,
         FORBIDDEN_PATH_MARKERS,
+        COUNTRY_GIRI_REL,
         FULL_GCIRI_REL,
+        MODE_DIR_REL,
+        PAPER_DIR_REL,
+        POLICY_DIR_REL,
         PROJECT_ROOT,
+        RESTORATIVE_DIR_REL,
         apply_style,
         load_country_giri,
         load_full_gciri,
@@ -34,15 +44,10 @@ except ImportError:
     )
 
 
-PAPER_DIR_REL = Path("_paper/gciri_full5862_spine_20260704")
 DISCOVERY_DIR_REL = PAPER_DIR_REL / "discovery_20260705_020407"
-MODE_DIR_REL = PAPER_DIR_REL / "result4_mode_validation_20260718_194933"
-RESTORATIVE_DIR_REL = (
-    PAPER_DIR_REL / "result4_restorative_boundary_20260718_201645"
-)
-POLICY_DIR_REL = PAPER_DIR_REL / "policy_pathway_analysis_20260717"
+HISTORY_REL = PAPER_DIR_REL / "_history/markdown_era_2026-07"
 FEMA_DIR_REL = (
-    PAPER_DIR_REL / "external_validation_us_fema_20260705_034300"
+    HISTORY_REL / "external_validation_us_fema_20260705_034300"
 )
 
 PAIR_REL = DISCOVERY_DIR_REL / "case_pair_contrasts.csv"
@@ -55,9 +60,9 @@ RESTORATIVE_SUMMARY_REL = (
 )
 SCENARIO_SUMMARY_REL = POLICY_DIR_REL / "scenario_summary.csv"
 POLICY_CITY_REL = POLICY_DIR_REL / "city_policy_typology.csv"
-IDENTITY_REL = PAPER_DIR_REL / "identity_anchor_scan_20260705.csv"
+IDENTITY_REL = HISTORY_REL / "identity_anchor_scan_20260705.csv"
 COVARIATE_REL = (
-    PAPER_DIR_REL / "city_level_covariate_validation_stats_20260705.csv"
+    HISTORY_REL / "city_level_covariate_validation_stats_20260705.csv"
 )
 FEMA_CORRELATION_REL = FEMA_DIR_REL / "us_fema_nri_correlations.csv"
 
@@ -90,28 +95,8 @@ def load_csv(relative_path: Path, required: set[str]) -> pd.DataFrame:
     return frame
 
 
-def load_supplementary_inputs() -> dict[str, pd.DataFrame]:
-    truth = load_full_gciri()
-    country = load_country_giri()
-    pairs = load_csv(
-        PAIR_REL,
-        {
-            "group",
-            "left_city",
-            "left_key",
-            "left_gciri",
-            "right_city",
-            "right_key",
-            "right_gciri",
-            "gciri_gap_left_minus_right",
-            "distance_km",
-            "status",
-        },
-    )
-    anomalies = load_csv(
-        ANOMALY_REL,
-        {"flag", "city", "iso3", "gciri", "r_ph_city", "reason_to_audit"},
-    )
+def _load_model_inputs(truth: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Mode, scenario and formula inputs derived from the current run, checked against it."""
     sensitivity = load_csv(
         SENSITIVITY_REL,
         {
@@ -177,6 +162,59 @@ def load_supplementary_inputs() -> dict[str, pd.DataFrame]:
     )
     if policy_city["r_ph_city"].isna().any():
         raise ValueError("Formula diagnostic rows do not all match current truth")
+    if len(truth) != EXPECTED_FULL_ROWS or truth["city"].nunique() != EXPECTED_FULL_ROWS:
+        raise ValueError("Current truth table does not preserve 5862 unique city keys")
+    if len(sensitivity) != 81:
+        raise ValueError("Focused sensitivity input must contain 81 settings")
+    if cluster["cluster_count"].tolist() != [4, 5, 6, 7, 8]:
+        raise ValueError("Cluster validation must cover k=4 through k=8")
+    if len(bootstrap) != 60:
+        raise ValueError("Bootstrap cluster input must contain 60 resamples")
+    if len(policy_city) != EXPECTED_FULL_ROWS:
+        raise ValueError("Policy diagnostic table must contain 5862 cities")
+    if not np.allclose(
+        policy_city.set_index("city").loc[truth["city"], "gciri"].to_numpy(),
+        truth["gciri"].to_numpy(),
+        atol=0.011,
+    ):
+        raise ValueError("Formula diagnostic table does not match current GCIRI")
+    return {"sensitivity": sensitivity, "cluster": cluster, "bootstrap": bootstrap,
+            "restorative": restorative, "scenarios": scenarios, "policy_city": policy_city}
+
+
+def load_supplementary_inputs(*, include_july_checks: bool = True) -> dict[str, pd.DataFrame]:
+    """Inputs of the supplementary figures.
+
+    include_july_checks=False skips the July 2026 reasonableness pairs, anomaly ledger, identity scan
+    and covariate tables, which were computed on the July results and feed only the S3, S4, S9 and
+    S10 figures that are not part of the paper.
+    """
+    truth = load_full_gciri()
+    country = load_country_giri()
+    data = _load_model_inputs(truth)
+    if not include_july_checks:
+        return {"truth": truth, "country": country, **data}
+    pairs = load_csv(
+        PAIR_REL,
+        {
+            "group",
+            "left_city",
+            "left_key",
+            "left_gciri",
+            "right_city",
+            "right_key",
+            "right_gciri",
+            "gciri_gap_left_minus_right",
+            "distance_km",
+            "status",
+        },
+    )
+    anomalies = load_csv(
+        ANOMALY_REL,
+        {"flag", "city", "iso3", "gciri", "r_ph_city", "reason_to_audit"},
+    )
+    sensitivity, cluster, bootstrap = data["sensitivity"], data["cluster"], data["bootstrap"]
+    restorative, scenarios, policy_city = data["restorative"], data["scenarios"], data["policy_city"]
     identity = load_csv(IDENTITY_REL, {"check", "count", "note"})
     covariates = load_csv(
         COVARIATE_REL,
@@ -193,16 +231,6 @@ def load_supplementary_inputs() -> dict[str, pd.DataFrame]:
         {"left", "right", "n", "spearman", "expectation"},
     )
 
-    if len(truth) != EXPECTED_FULL_ROWS or truth["city"].nunique() != EXPECTED_FULL_ROWS:
-        raise ValueError("Current truth table does not preserve 5862 unique city keys")
-    if len(sensitivity) != 81:
-        raise ValueError("Focused sensitivity input must contain 81 settings")
-    if cluster["cluster_count"].tolist() != [4, 5, 6, 7, 8]:
-        raise ValueError("Cluster validation must cover k=4 through k=8")
-    if len(bootstrap) != 60:
-        raise ValueError("Bootstrap cluster input must contain 60 resamples")
-    if len(policy_city) != EXPECTED_FULL_ROWS:
-        raise ValueError("Policy diagnostic table must contain 5862 cities")
     if set(pairs["status"]) != {"ok"}:
         raise ValueError("Reasonableness-pair input contains a failed pair")
 
@@ -218,12 +246,6 @@ def load_supplementary_inputs() -> dict[str, pd.DataFrame]:
             raise ValueError("Reasonableness-pair scores do not match current truth")
     if not set(anomalies["city"]).issubset(set(truth["city"])):
         raise ValueError("Anomaly ledger contains a city outside current truth")
-    if not np.allclose(
-        policy_city.set_index("city").loc[truth["city"], "gciri"].to_numpy(),
-        truth["gciri"].to_numpy(),
-        atol=0.011,
-    ):
-        raise ValueError("Formula diagnostic table does not match current GCIRI")
 
     return {
         "truth": truth,
@@ -452,7 +474,7 @@ def build_s2_country_anchor(data, output_dir, plt) -> str:
         output_dir,
         stem,
         panels=1,
-        input_sources=[FULL_GCIRI_REL, Path("_pipelines/01_baseline_gciri/outputs/v28_full5862_20260702_020421/analysis/country_vs_official_giri.csv")],
+        input_sources=[FULL_GCIRI_REL, COUNTRY_GIRI_REL],
         source_data=[source],
     )
     plt.close(fig)

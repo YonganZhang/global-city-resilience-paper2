@@ -1,0 +1,9 @@
+Reference variable,n,Spearman’s ρ,Relation to GCIRI
+Official national GIRI,"5,862",0.87,National input to GCIRI
+City population,"5,862",0.03,City characteristic
+VIIRS night-time lights,"5,862",0.55,Component of the exposure input
+Population × night-time lights,"5,862",0.43,Exposure input
+FEMA NRI community resilience,184,-0.02,US county index
+FEMA NRI social vulnerability,184,-0.37,US county index
+FEMA NRI expected annual loss,184,0.15,US county index
+FEMA NRI risk index,184,0.07,US county index

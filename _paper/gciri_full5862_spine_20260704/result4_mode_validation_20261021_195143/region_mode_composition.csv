@@ -1,0 +1,37 @@
+region_group,development_mode,share_pct,n,mode_code
+East & Southeast Asia,balanced high-resilience,15.737298636926889,254,M1
+East & Southeast Asia,imbalanced high-resilience,20.63197026022305,333,M2
+East & Southeast Asia,mixed-deficit transition,30.049566294919455,485,M3
+East & Southeast Asia,single-bottleneck transition,17.905824039653037,289,M4
+East & Southeast Asia,compound low-resilience,10.408921933085502,168,M5
+East & Southeast Asia,single-deficit low-resilience,5.266418835192069,85,M6
+"South, Central & West Asia",balanced high-resilience,0.6267806267806267,11,M1
+"South, Central & West Asia",imbalanced high-resilience,3.4757834757834756,61,M2
+"South, Central & West Asia",mixed-deficit transition,32.592592592592595,572,M3
+"South, Central & West Asia",single-bottleneck transition,10.76923076923077,189,M4
+"South, Central & West Asia",compound low-resilience,38.57549857549857,677,M5
+"South, Central & West Asia",single-deficit low-resilience,13.96011396011396,245,M6
+Americas,balanced high-resilience,19.23566878980892,151,M1
+Americas,imbalanced high-resilience,31.84713375796178,250,M2
+Americas,mixed-deficit transition,28.662420382165603,225,M3
+Americas,single-bottleneck transition,8.40764331210191,66,M4
+Americas,compound low-resilience,6.24203821656051,49,M5
+Americas,single-deficit low-resilience,5.605095541401274,44,M6
+Europe,balanced high-resilience,35.26405451448041,207,M1
+Europe,imbalanced high-resilience,47.87052810902896,281,M2
+Europe,mixed-deficit transition,8.17717206132879,48,M3
+Europe,single-bottleneck transition,3.4071550255536627,20,M4
+Europe,compound low-resilience,1.8739352640545146,11,M5
+Europe,single-deficit low-resilience,3.4071550255536627,20,M6
+Africa,balanced high-resilience,0.091324200913242,1,M1
+Africa,imbalanced high-resilience,1.552511415525114,17,M2
+Africa,mixed-deficit transition,30.8675799086758,338,M3
+Africa,single-bottleneck transition,7.76255707762557,85,M4
+Africa,compound low-resilience,53.6986301369863,588,M5
+Africa,single-deficit low-resilience,6.027397260273973,66,M6
+Oceania,balanced high-resilience,57.692307692307686,15,M1
+Oceania,imbalanced high-resilience,19.230769230769234,5,M2
+Oceania,mixed-deficit transition,7.6923076923076925,2,M3
+Oceania,single-bottleneck transition,3.8461538461538463,1,M4
+Oceania,compound low-resilience,3.8461538461538463,1,M5
+Oceania,single-deficit low-resilience,7.6923076923076925,2,M6

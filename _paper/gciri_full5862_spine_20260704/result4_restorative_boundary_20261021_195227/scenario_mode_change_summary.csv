@@ -1,0 +1,4 @@
+scenario,mode_changed_n,mode_changed_pct,gciri_tier_changed_n,gciri_tier_changed_pct
+formula score response only,98,1.6717843739338112,98,1.6717843739338112
+capacity profile change only,1979,33.75980893892869,0,0.0
+combined score and capacity change,2051,34.988058683043334,98,1.6717843739338112

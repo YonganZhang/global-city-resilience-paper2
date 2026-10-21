@@ -68,6 +68,10 @@ steps:
     output_artifacts: ["outputs/v<NN>/step_09_gciri.csv"]
 
 notes: |
+  2026-10-21 论文运行改为 outputs/v28_full5862_viirsfill_tierfix_20261021：模型评分沿用 v28_full5862_20260702_020421
+  （软链接），夜光补缺块后由 replay_post_council.py --from-step 05e 重算 05e–09。同批修了两处档位表：step_07 的 V 比率
+  原表缺 A-（351 城 538 条评分被丢），step_05e 兜底原表从 A- 起整体错一档（280 个兜底格中 9 格差一档），现都读
+  _code/llm/tier_to_score.py。论文侧所有指针集中在 _code/plotting_v28_full5862/_shared.py。
   2026-09-06 梯形等效降尺度：run_all.py 仅向 step07 转发 --downscale-method。
   compare_downscale_methods.py 使用冻结的5862城输入独立重放 step07–09，不调用付费模型。
   当前候选与原表在两位小数 GCIRI、三能力、排名、弱点和六模式上相同；候选单独登记，不替换论文原数据。

@@ -10,6 +10,9 @@
 ALPHA_H = 0.8    # 灾害弹性 (有效灾害比值的算术平均)
 ALPHA_E = 0.3    # 暴露弹性 (人口×夜光 city/nat ratio)
 ALPHA_V = 0.3    # 脆弱性弹性 (ABS 6 城/国 deficit ratio)
+E_RATIO_BOUNDS = (0.3, 3.0)   # 暴露比值上下限 (沿用老 step1b 口径)
+# 三个参数和暴露上下限对主要结果的敏感性: _code/plotting_v28_full5862/downscaling_sensitivity.py
+# (论文 Supplementary Note 3 / Supplementary Table 4)。
 R_PH_SOFT_CAP_THRESHOLD = 0.95   # raw>0.95 渐进 1.0 防 megacity 全饱和失差异
 
 # σ² floor / 兜底常数 (值同 _pipelines/00_data_prep/_config.py)

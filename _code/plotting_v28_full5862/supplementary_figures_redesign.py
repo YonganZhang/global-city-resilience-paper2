@@ -104,12 +104,12 @@ def _s2(data, output, plt):
     for row in pd.concat([country.nsmallest(4, "residual"), country.nlargest(4, "residual")]).drop_duplicates("iso3").itertuples():
         ax.annotate(row.iso3, (row.official_giri, row.gciri_mean), xytext=(3, 2), textcoords="offset points", fontsize=6.5, color=INK)
     rho = country[["official_giri", "gciri_mean"]].corr(method="spearman").iloc[0, 1]
-    ax.text(0.03, 0.97, f"Spearman rho = {rho:.2f}; n = {len(country)}", transform=ax.transAxes, ha="left", va="top", fontsize=7, color=INK)
+    ax.text(0.03, 0.97, f"Spearman\u2019s \u03c1 = {rho:.2f}, n = {len(country)}", transform=ax.transAxes, ha="left", va="top", fontsize=7, color=INK)
     ax.set_xlim(limits); ax.set_ylim(limits)
     ax.set_xlabel("Official national GIRI"); ax.set_ylabel("Mean city GCIRI")
     ax.grid(color=GRID, linewidth=0.45, alpha=0.75)
     fig.subplots_adjust(left=0.14, right=0.96, top=0.95, bottom=0.14)
-    _save(fig, output, "figs1_country_mean_gciri_official_anchor", 1, [sf.FULL_GCIRI_REL, Path("_pipelines/01_baseline_gciri/outputs/v28_full5862_20260702_020421/analysis/country_vs_official_giri.csv")], [source])
+    _save(fig, output, "figs1_country_mean_gciri_official_anchor", 1, [sf.FULL_GCIRI_REL, sf.COUNTRY_GIRI_REL], [source])
     plt.close(fig)
 
 
@@ -196,7 +196,7 @@ def _s7(data, output, plt):
         q25, med, q75 = np.quantile(values, [0.25, 0.5, 0.75])
         ax.plot([q25, q75], [yi, yi], color=INK, linewidth=2.0, solid_capstyle="round", zorder=4)
         ax.scatter([med], [yi], s=28, color=INK, edgecolor="white", linewidth=0.8, zorder=5)
-    ax.set_yticks(y, ["ARI vs full k=6", "ARI vs rule patterns", "NMI vs rule patterns"]); ax.set_xlabel("Bootstrap agreement index"); ax.set_xlim(0.2, 1.02); ax.set_ylim(-0.48, 2.48); sf.style_axis(ax)
+    ax.set_yticks(y, ["ARI vs full-sample six clusters", "ARI vs rule patterns", "NMI vs rule patterns"]); ax.set_xlabel("Bootstrap agreement index"); ax.set_xlim(0.2, 1.02); ax.set_ylim(-0.48, 2.48); sf.style_axis(ax)
     ax.grid(axis="x", color=GRID, linewidth=0.5, alpha=0.75)
     fig.subplots_adjust(left=0.13, right=0.97, top=0.96, bottom=0.16)
     _save(fig, output, "figs4_bootstrap_stability", 1, [sf.BOOTSTRAP_REL], [source_b])
@@ -225,7 +225,7 @@ def _s8(data, output, plt):
         ax.scatter([med], [pos], color=INK, s=35, edgecolor="white", linewidth=0.8, zorder=5)
         rng = np.random.default_rng(100 + pos); sample = values[rng.choice(len(values), min(240, len(values)), replace=False)]
         ax.scatter(sample, rng.normal(pos, 0.045, len(sample)), color=color, s=7, alpha=0.16, linewidth=0, zorder=2)
-    ax.axvline(0, color=MUTED, linewidth=0.9, linestyle=(0, (3, 3))); ax.set_yticks(positions, list(capacity_cols)); ax.set_xlabel("Modeled GCIRI change for a +10 pp capacity scenario"); ax.set_xlim(min(-1.0, float(long["delta_gciri"].min())) - 0.2, float(long["delta_gciri"].max()) + 0.5); sf.style_axis(ax); ax.grid(axis="x", color=GRID, linewidth=0.5, alpha=0.75)
+    ax.axvline(0, color=MUTED, linewidth=0.9, linestyle=(0, (3, 3))); ax.set_yticks(positions, list(capacity_cols)); ax.set_xlabel("Modelled GCIRI change (points)"); ax.set_xlim(min(-1.0, float(long["delta_gciri"].min())) - 0.2, float(long["delta_gciri"].max()) + 0.5); sf.style_axis(ax); ax.grid(axis="x", color=GRID, linewidth=0.5, alpha=0.75)
     fig.subplots_adjust(left=0.19, right=0.98, top=0.96, bottom=0.16)
     _save(fig, output, "figs5_capacity_intervention_distributions", 1, [sf.POLICY_CITY_REL], [source_a])
     plt.close(fig)
@@ -243,7 +243,7 @@ def _s8(data, output, plt):
     flagged = response[response["nonmonotonic_10pp"]]
     if not flagged.empty: ax.scatter(flagged["r_ph_city"], flagged["delta_restorative_10pp_raw"], s=14, facecolor="none", edgecolor=RED, linewidth=0.8, alpha=0.65)
     cbar = fig.colorbar(hb, ax=ax, pad=0.02, fraction=0.05); cbar.set_label("Cities per hexagon")
-    ax.axhline(0, color=MUTED, linewidth=0.9, linestyle=(0, (3, 3))); ax.set_xlabel("Physical risk"); ax.set_ylabel("Restorative +10 pp modeled GCIRI change"); ax.set_xlim(-0.02, 1.02); sf.style_axis(ax); ax.grid(color=GRID, linewidth=0.45, alpha=0.6)
+    ax.axhline(0, color=MUTED, linewidth=0.9, linestyle=(0, (3, 3))); ax.set_xlabel("Physical risk"); ax.set_ylabel("Modelled GCIRI change (points)"); ax.set_xlim(-0.02, 1.02); sf.style_axis(ax); ax.grid(color=GRID, linewidth=0.45, alpha=0.6)
     fig.subplots_adjust(left=0.14, right=0.88, top=0.96, bottom=0.15)
     _save(fig, output, "figs6_restorative_response_risk_gradient", 1, [sf.POLICY_CITY_REL], [source_b])
     plt.close(fig)
@@ -269,7 +269,7 @@ BUILDERS = [_s2, _s5, _s7, _s8]
 
 
 def render(output_dir: Path | None = None) -> Path:
-    mpl, plt = sf.load_plotting_backend(); sf.apply_style(mpl); data = sf.load_supplementary_inputs(); output = sf.build_output_dir(output_dir)
+    mpl, plt = sf.load_plotting_backend(); sf.apply_style(mpl); data = sf.load_supplementary_inputs(include_july_checks=False); output = sf.build_output_dir(output_dir)
     for builder in BUILDERS: builder(data, output, plt)
     (output / "selection_manifest.md").write_text(
         "# Refined supplementary figure package\n\n"

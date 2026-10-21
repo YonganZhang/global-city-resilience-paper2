@@ -1,0 +1,70 @@
+{
+  "created": "2026-10-22T00:16:24",
+  "script": "_code/plotting_v28_full5862/downscaling_sensitivity.py",
+  "run": "_pipelines/01_baseline_gciri/outputs/v28_full5862_viirsfill_tierfix_20261021",
+  "inputs_sha256": {
+    "step_06_f.csv": "d4a3d0426aa1630980c5bd2ec6ece9f01c2b11222093333a7fdcb9f55182a6ad",
+    "step_07_r_ph_city.csv": "7a950c8ff0d08e1ec7a6c1fa854e7cd60de17750ee8f912893cd76c50d84e4e4",
+    "step_07_r_ph_city_full_6275.parquet": "a03e179b76e92ae1f75b2c5467d693dbc3ad397fcb0b0818633bf46b5ebb6664",
+    "step_08_capacities.csv": "270712b9aaf542456c32f9164d7a8ae4ecb124a0f19337c1440cf31839a5eff9",
+    "step_09_gciri.csv": "43c3aa6e0dcd67c016da2ea1372c86333feb9ef76de7318184037804bde31923"
+  },
+  "baseline": {
+    "alpha_h": 0.8,
+    "alpha_e": 0.3,
+    "alpha_v": 0.3,
+    "e_bounds": [
+      0.3,
+      3.0
+    ]
+  },
+  "baseline_reproduction_max_abs_difference": {
+    "e_ratio": 0.0,
+    "r_ph_city": 0.0,
+    "cap_abs": 0.0,
+    "gciri": 0.0
+  },
+  "grid": {
+    "settings": 27,
+    "ranges": {
+      "spearman_vs_baseline": [
+        0.9905855746606932,
+        0.9999999999999999
+      ],
+      "mean_abs_change": [
+        0.0,
+        4.4233401569430235
+      ],
+      "south_north_ratio_pct": [
+        51.649824277950906,
+        61.03620067308528
+      ],
+      "restorative_weakest_pct": [
+        53.428863868986696,
+        62.26543841692255
+      ],
+      "low_resilience_pct": [
+        20.74377345615831,
+        43.17639031047424
+      ],
+      "high_patterns_north_pct": [
+        88.91595615103533,
+        93.17904993909866
+      ],
+      "high_patterns_south_pct": [
+        12.0472283370022,
+        20.772463478086852
+      ],
+      "patterns_retained_pct": [
+        79.58034800409418,
+        100.0
+      ]
+    },
+    "restorative_most_common_at_every_level": 21
+  },
+  "model_calls": 0,
+  "outputs": [
+    "downscaling_sensitivity_settings.csv",
+    "supplementary_table_downscaling_sensitivity.csv"
+  ]
+}

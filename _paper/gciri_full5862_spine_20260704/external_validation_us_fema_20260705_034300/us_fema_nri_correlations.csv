@@ -1,8 +1,0 @@
-left,right,n,pearson,spearman,expectation
-gciri,RESL_SCORE,184,-0.027911123805994153,-0.012419991051571998,expected positive if both encode stronger resilience
-gciri,SOVI_SCORE,184,-0.3484309534441364,-0.3693227052142944,expected negative if higher vulnerability lowers resilience
-gciri,EAL_SCORE,184,0.13335071062884898,0.14583712619677022,expected negative or weak because FEMA EAL is loss/risk
-gciri,RISK_SCORE,184,0.046171006211648574,0.06725231543583879,expected negative or weak because FEMA risk is hazard-loss-vulnerability
-r_ph_city,EAL_SCORE,184,-0.08312922948687074,0.035154402560823445,expected positive if both track physical or expected-loss risk
-r_ph_city,RISK_SCORE,184,-0.0321753817425021,0.10799267560017972,expected positive if both track risk exposure
-cap_rest,RESL_SCORE,184,0.17422037345743022,0.1294313865872206,expected positive but definitions differ

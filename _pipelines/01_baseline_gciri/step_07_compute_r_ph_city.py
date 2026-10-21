@@ -42,12 +42,10 @@ ABS_ALIAS = [
     'Urban_income_equity', 'Urban_safety_and_social_cohesion',
     'Housing_habitability', 'Infrastructure_quality',
 ]
-TIER_TO_SCORE = {
-    'S+': 97.5, 'S': 92.5, 'A+': 87.5, 'A': 82.5,
-    'B+': 77.5, 'B': 72.5, 'B-': 67.5, 'C+': 62.5, 'C': 57.5, 'C-': 52.5,
-    'D+': 47.5, 'D': 42.5, 'D-': 37.5, 'E+': 32.5, 'E': 27.5, 'E-': 22.5,
-    'F+': 17.5, 'F': 12.5, 'F-': 7.5, 'BOT': 2.5,
-}
+# 档位 → 分数用议会的 21 档单一真源 (含 A-=80.0)。2026-10-21 前这里自带一张缺 A- 的 20 档表,
+# map 后 dropna 静默丢掉了 351 城 538 条 A- 吸收评分, V_ratio 偏高 (v28_full5862_20260702_020421 受影响)。
+sys.path.append(str(REPO_ROOT / "_code" / "llm"))
+from tier_to_score import TIER_TO_MIDPOINT  # noqa: E402
 
 # display 名 → iso3 (撞名城 London CAN vs GBR 用 (city, iso3) 联合 key 消歧)
 _NAME_TO_ISO3 = dict(BENCHMARK_50)
@@ -116,8 +114,11 @@ def build_council_v_ratio(
     abs_only = c[c['indicator'].isin(ABS_ALIAS)].copy()
     if abs_only.empty:
         return {}
-    abs_only['score'] = abs_only['tier'].map(TIER_TO_SCORE)
-    abs_only = abs_only.dropna(subset=['score'])
+    abs_only = abs_only.dropna(subset=['tier'])
+    unknown = set(abs_only['tier']) - set(TIER_TO_MIDPOINT)
+    if unknown:
+        raise ValueError(f"step_05_consul.csv 含未知档位 {sorted(unknown)}")
+    abs_only['score'] = abs_only['tier'].map(TIER_TO_MIDPOINT)
     abs_only['deficit'] = (100 - abs_only['score']) / 100
     city_abs_def = abs_only.groupby('city')['deficit'].mean().to_dict()
 

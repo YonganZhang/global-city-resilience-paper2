@@ -8,14 +8,14 @@ from pathlib import Path
 import pandas as pd
 
 try:
-    from ._shared import EXPECTED_FULL_ROWS, PROJECT_ROOT
+    from ._shared import EXPECTED_FULL_ROWS, POLICY_DIR_REL, PROJECT_ROOT
     from .development_mode_analysis import (
         BASE_PARAMETERS,
         compute_development_modes,
         load_mode_city_data,
     )
 except ImportError:
-    from _shared import EXPECTED_FULL_ROWS, PROJECT_ROOT
+    from _shared import EXPECTED_FULL_ROWS, POLICY_DIR_REL, PROJECT_ROOT
     from development_mode_analysis import (
         BASE_PARAMETERS,
         compute_development_modes,
@@ -23,10 +23,7 @@ except ImportError:
     )
 
 
-SUPPORTING_SCENARIO_REL = Path(
-    "_paper/gciri_full5862_spine_20260704/"
-    "policy_pathway_analysis_20260717/city_policy_typology.csv"
-)
+SUPPORTING_SCENARIO_REL = POLICY_DIR_REL / "city_policy_typology.csv"
 DEFAULT_OUTPUT_PARENT = Path("_paper/gciri_full5862_spine_20260704")
 
 

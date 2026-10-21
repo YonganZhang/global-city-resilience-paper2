@@ -12,6 +12,7 @@ try:
     from ._shared import (
         EXPECTED_FULL_ROWS,
         FULL_GCIRI_REL,
+        MODE_DIR_REL,
         PROJECT_ROOT,
         apply_style,
         compute_scatter_size,
@@ -37,6 +38,7 @@ except ImportError:
     from _shared import (
         EXPECTED_FULL_ROWS,
         FULL_GCIRI_REL,
+        MODE_DIR_REL,
         PROJECT_ROOT,
         apply_style,
         compute_scatter_size,
@@ -60,10 +62,7 @@ except ImportError:
     )
 
 
-DEFAULT_ANALYSIS_REL = Path(
-    "_paper/gciri_full5862_spine_20260704/"
-    "result4_mode_validation_20260718_194933"
-)
+DEFAULT_ANALYSIS_REL = MODE_DIR_REL
 OUTPUT_PREFIX = "gciri_full5862_storyline"
 
 MODE_CODES = [f"M{index}" for index in range(1, 7)]

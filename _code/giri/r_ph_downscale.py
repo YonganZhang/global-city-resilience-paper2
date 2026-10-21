@@ -22,7 +22,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from _config import ALPHA_H, ALPHA_E, ALPHA_V, R_PH_SOFT_CAP_THRESHOLD
+from _config import ALPHA_H, ALPHA_E, ALPHA_V, E_RATIO_BOUNDS, R_PH_SOFT_CAP_THRESHOLD
 
 # 8 灾害 (master haz_*__HAZ 列): 地震/洪水/热带气旋/干旱/地震滑坡/降雨滑坡/海啸/风暴潮
 HAZARDS = ["EQ", "FL", "TC", "DR", "LS_EQ", "LS_RAIN", "TS", "SS"]
@@ -53,17 +53,17 @@ def compute_h_ratio(city_row) -> float:
     return float(np.mean(ratios))
 
 
-def compute_e_ratio(city_row) -> float:
+def compute_e_ratio(city_row, bounds: tuple[float, float] = E_RATIO_BOUNDS) -> float:
     """E_ratio = exp_pop_ntl_city / exp_pop_ntl_nat_avg (人口×夜光暴露). 缺 → 1.0.
 
-    下上限保护 clip(0.3, 3.0) (沿用老 step1b 既定口径): 小城 (VIIRS 夜光=0 → ratio=0)
+    下上限保护 clip(bounds), 默认 (0.3, 3.0) (沿用老 step1b 既定口径): 小城 (VIIRS 夜光=0 → ratio=0)
     不应让 R_Ph_city 被压成 0 (物理风险不可能真零, 是数据缺失); 大城上限 3.0 防过放大.
     """
     pop_ntl = city_row.get("exp_pop_ntl_city__RAW")
     nat_avg = city_row.get("exp_pop_ntl_nat_avg__RAW")
     if pop_ntl is None or nat_avg is None or pd.isna(pop_ntl) or pd.isna(nat_avg) or nat_avg <= 0:
         return 1.0
-    return float(min(max(pop_ntl / nat_avg, 0.3), 3.0))
+    return float(min(max(pop_ntl / nat_avg, bounds[0]), bounds[1]))
 
 
 def compute_v_ratio(city_abs_def_avg: Optional[float], nat_abs_def_avg: Optional[float]) -> float:

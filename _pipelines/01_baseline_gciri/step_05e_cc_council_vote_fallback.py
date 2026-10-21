@@ -18,21 +18,15 @@ E 方案 v3 (2026-06-02 用户拍板, cc 介入思路):
 from __future__ import annotations
 import argparse
 import shutil
+import sys
 from pathlib import Path
 import pandas as pd
 
 
-# 21 档 tier → mid_score 映射 (跟项目级 tier_to_score 一致)
-TIER_MID = {
-    "S+": 97.5, "S": 92.5,
-    "A+": 87.5, "A": 82.5, "A-": 77.5,
-    "B+": 72.5, "B": 67.5, "B-": 62.5,
-    "C+": 57.5, "C": 52.5, "C-": 47.5,
-    "D+": 42.5, "D": 37.5, "D-": 32.5,
-    "E+": 27.5, "E": 22.5, "E-": 17.5,
-    "F+": 12.5, "F": 7.5, "F-": 5,
-    "BOT": 2.5,
-}
+# 档位 → 分数用议会的 21 档单一真源 (_code/llm/tier_to_score.py)。2026-10-21 前这里自带一张从 A- 起
+# 整体下移一档的表 (A-=77.5, B+=72.5 …), 280 个兜底格中有 9 格因此差一档。
+sys.path.append(str(Path(__file__).resolve().parents[2] / "_code" / "llm"))
+from tier_to_score import TIER_TO_MIDPOINT as TIER_MID  # noqa: E402
 
 
 def score_to_tier(s: float) -> str:

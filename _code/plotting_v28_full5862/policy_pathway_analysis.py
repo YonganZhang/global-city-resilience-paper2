@@ -11,11 +11,10 @@ import pandas as pd
 from sklearn.metrics import adjusted_rand_score
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-FULL_GCIRI_REL = Path(
-    "_pipelines/01_baseline_gciri/outputs/"
-    "v28_full5862_20260702_020421/analysis/full_gciri_with_meta.csv"
-)
+try:
+    from ._shared import FULL_GCIRI_REL, PROJECT_ROOT
+except ImportError:
+    from _shared import FULL_GCIRI_REL, PROJECT_ROOT
 COUNTRY_META_REL = Path("_data/master_global_cities/master_global_cities_v1.csv")
 EXPECTED_ROWS = 5862
 
